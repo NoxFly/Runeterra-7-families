@@ -35,20 +35,20 @@ const setBackgroundBrightness = percentage => {
 
 
 // stringify the cookie and save it
-const saveCookie = player => {
+/* const saveCookie = player => {
     document.cookie = `player: {"id": "${player.id}", "username": "${player.username}"};`;
-};
+}; */
 
 
 // get cookie as object
-const parseCookies = () => {
+/* const parseCookies = () => {
     let cookies = document.cookie.replace(/player: (\{.*\})/, '$1');
     if(/\{.*\}/.test(cookies)) {
         return JSON.parse(cookies);
     }
 
     return {};
-};
+}; */
 
 //
 const copy = obj => JSON.parse(JSON.stringify(obj));
@@ -92,13 +92,11 @@ export {
     setBackground,
     removeBackground,
     setBackgroundBrightness,
-    saveCookie,
-    parseCookies,
     formatChampion,
     formatRegion,
     copy,
     rand,
     _alert,
     shuffle,
-    filterObj
+    filterObj,
 };

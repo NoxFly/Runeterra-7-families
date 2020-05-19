@@ -8,18 +8,32 @@ class Player {
         // firebase config
         firebase.initializeApp(config);
         this.database = firebase.database();
-        console.clear();
 
         this.game = {};
 
+        this.dev = player == 'dev';
+
 
         // recover local player data
-        if(player) {
+        if(this.dev) {
+            this.key = 'a';
+            this.name = 'Noxfly';
+        }
+
+
+        else if(player) {
             this.key = player.id;
             this.name = player.username;
         } else {
             this.genPlayer();
         }
+
+
+        let ref = this.database.ref(`/players/${this.key}`);
+        if(!this.dev) ref.onDisconnect().remove();
+        ref.on('child_removed', () => {
+            location.reload();
+        });
     }
 
     // generate random key with 63 chars
@@ -27,6 +41,10 @@ class Player {
         return randomKey(63);
     }
 
+    refreshVerificationDate() {
+        let now = Date.now();
+        this.database.ref('/lastVerificationDate').set(now);
+    }
 
 
 
@@ -66,14 +84,16 @@ class Player {
     // get/refresh remote data about the player
     async recoverUserData() {
         await this.database.ref(`/players/${this.key}`).once('value', data => {
-            data = data.val();
-            this.name           = data.username;
-            this.bIngame        = data.ingame;
-            this.bHosting       = data.hosting;
-            this.iWins          = data.wins;
-			this.iLosses	    = data.losses;
-			this.sLobby			= data.lobby;
-            this.creationDate   = data.creationDate;
+            if(data) {
+                data = data.val();
+                this.name           = data.username;
+                this.bIngame        = data.ingame;
+                this.bHosting       = data.hosting;
+                this.iWins          = data.wins;
+                this.iLosses	    = data.losses;
+                this.sLobby			= data.lobby;
+                this.creationDate   = data.creationDate;
+            }
         });
     }
 
@@ -183,7 +203,7 @@ class Player {
 
 
     async launchGame(participants, nFamilies) {
-        if(this.ingame) return false;
+        if(this.ingame && !this.dev) return false;
         this.ingame = this.id;
         this.database.ref(`/players/${this.key}/ingame`).set(this.key);
 
@@ -202,7 +222,8 @@ class Player {
             deck: deck,
             families: families,
             completed: completed,
-            news: false
+            news: false,
+            creationDate: Date.now()
         };
 
         await this.database.ref(`/games`).child(this.key).set(this.game);

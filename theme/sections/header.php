@@ -1,6 +1,6 @@
 <!-- Commentaries -->
 <div id='popup-box'>
-    <div class='infos' data-text="Si vous quittez le navigateur ou que vous supprimez vos cookies, vous perdrez automatiquement votre compte, car il est associé à une clé générée aléatoirement à chaque session. Dans tous les cas, votre compte expire au bout de 24 heures."></div>
+    <div class='infos' data-text="Si vous quittez ou raffraîchissez le navigateur ou la page, vous perdrez votre compte. Dans tous les cas, il dure 6 heures."></div>
 </div>
 
 

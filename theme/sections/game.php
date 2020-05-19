@@ -1,20 +1,51 @@
 <!-- In game section -->
 <section id='game'>
 
-    <!-- Button to close the player's deck -->
-
-    <div id='close-pannel-bundle'>
-        <img src='asset/arrows/border-arrow-up.png' width='22'>
+    <div id='deck'>
+        <div class='inner'>
+            <?php
+            for($i=0; $i<5; $i++) {
+                $z = ($i * 2) . 'px';
+                echo "<div class='cards' style='transform: scale(.7) translate(-70%, -70%) rotateX(65deg) rotateZ(12deg) translateZ($z)'></div>";
+            }
+            ?>
+        </div>
     </div>
-
-    <!-- Deck of the player -->
 
     <div id='pannel-bundle'>
-        <div class='inner'></div>
+        <div class='inner'>
+        <?php
+
+        for($i=0; $i<7; $i++) {
+            $a = ($i==3)? ' active' : '';
+            echo "<div class='bundle bundle-$i$a'>";
+
+            for($j=0; $j<6; $j++) {
+                echo "<div class='card card-$j'>
+                    <div class='inner'>
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>";
+            }
+
+            echo "</div>";
+        }
+
+        ?>
+        </div>
     </div>
 
 
-    <!-- Left side menu | show the champions of a region, and all regions that are in the current game -->
+    <div id='previous-bundle'></div>
+    <div id='next-bundle'></div>
+    <div id='close-bundle-phone'></div>
+
+    <div id='pannel-participants'></div>
+    <div id='timer'>
+        <div></div>
+    </div>
 
     <div id='regions-summary'></div>
 
@@ -22,12 +53,7 @@
     <div id='popup-region-summary'>
         <h3></h3>
         <div>
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
+            <?php for($i=0; $i<6; $i++) echo "<span></span>"; ?>
         </div>
     </div>
 
@@ -35,48 +61,26 @@
     <!-- Message box for events -->
 
     <div id='message-center'>
-        <p class='first-p'></p>
-        <h2></h2>
-        <p class='second-p'></p>
+        <div id='mcb'></div> <!-- message-center-before -->
+        <div id='mca'></div> <!-- message-center-after -->
+        <div class='inner'>
+            <p class='first-p'></p>
+            <h2></h2>
+            <p class='second-p'></p>
+        </div>
     </div>
-
-    <!-- Right side menu | show all participants -->
     
+
+
     <div id='participants'></div>
 
 
-    <!-- When user must choose a card -->
 
-    <div id='pannel-participants'>
-        <p>A qui souhaites-tu voler un champion ?</p>
-    </div>
-
-    <div id='pannel-regions'>
+    <div id='region-big-ghost'>
         <div class='inner'></div>
     </div>
 
-    <div id='pannel-champions'>
-        <div class='champion'>
-			<div class='inner'></div>
-		</div>
-        <div class='champion'>
-			<div class='inner'></div>
-		</div>
-        <div class='champion'>
-			<div class='inner'></div>
-		</div>
-        <div class='champion'>
-			<div class='inner'></div>
-		</div>
-        <div class='champion'>
-			<div class='inner'></div>
-		</div>
-		<div class='champion'>
-			<div class='inner'></div>
-		</div>
-		
-		<div class='cancel'></div>
-    </div>
+
 
     <article id='complete-family'>
         <div>
@@ -98,6 +102,7 @@
         <span></span>
     </div>
 
+    <div id='radial-ingame-background'></div>
 
 
 </section>

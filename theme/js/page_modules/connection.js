@@ -1,5 +1,4 @@
 import {player} from '../script.js';
-import {saveCookie} from '../utils.js';
 import * as HOME from './home-menu.js';
 
 const bindEvents = () => {
@@ -19,7 +18,8 @@ const bindEvents = () => {
 
     // check if we enable or disable the button to login, following what he wrote
     $('#connexion input').on('keyup', function(e) {
-        if($(this).val().length > 2 && $(this).val().length < 17 && $(this).val().replace(/\s/g, '') != '') {
+        let val = $(this).val();
+        if(val.length > 2 && val.length < 17) {
             $('#connexion button').prop('disabled', false);
         } else {
             $('#connexion button').prop('disabled', true);
@@ -30,22 +30,32 @@ const bindEvents = () => {
         }
     });
 
+    $('#connexion input').on('focus', function() {
+        $(this).parent().addClass('active');
+    });
+
     // connect
     $('#connexion button').on('click', async function() {
         $(this).prop('disabled', true);
+        let val = $('#connexion input').val().trim();
 
-        let isOk = await player.createUser($('#connexion input').val());
+        let canRegister = false;
+        if(val.length > 2 && val.length < 17) {
+            canRegister = true;
+        }
+
+        if(!canRegister) return;
+
+        let isOk = await player.createUser(val);
 
         if(isOk) {
-            saveCookie(player);
-
             unbindEvents();
             HOME.bindEvents();
 
             $('#connexion').fadeOut(200);
             $('#menu-home').delay(200).fadeIn(200);
 
-            $('#player-banner span').text($('#connexion input').val());
+            $('#player-banner span').text(val);
         }
     });
 };
@@ -54,6 +64,7 @@ const unbindEvents = () => {
     $('#connexion div').off('click');
     $('#connexion input').off('blur');
     $('#connexion input').off('keyup');
+    $('#connexion input').off('focus');
     $('#connexion button').off('click');
 };
 

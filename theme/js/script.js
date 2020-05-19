@@ -1,122 +1,46 @@
 // global vars
-let cookie = parseCookies();
 let player = {};
 const minFamilyN = 7;
+let isMobile = false;
 
 // database
 import {Player} from './player.js';
 
-// import utils
-import {parseCookies, setBackground} from './utils.js';
-
-
 // import for each section
 import * as GENERAL     from './page_modules/general.js';
 import * as CONNECTION  from './page_modules/connection.js';
-import * as HOME        from './page_modules/home-menu.js';
-import * as LOBBY       from './page_modules/lobby.js';
-import * as GAME        from './page_modules/game.js';
-
+import * as GAME  from './page_modules/game.js';
+import {lastSwipe, enableSwipe} from './swipe.js';
 
 
 window.onload = async function() {
-    $('#loadScreen').fadeIn(200);
+    isMobile = $(document).width() <= 1000;
+
+    if(isMobile) {
+        enableSwipe();
+    }
+
+
 
     // -- check if user already logged --
 
-    // not logged - starts new session
-    if($.isEmptyObject(cookie)) {
-        $('#connexion').show(0);
-        player = new Player();
+    // not logged - starts new session - COOKIE REMOVED SO IN EVERY CASES YOU MUST CONNECT
+    // -- that includes: if you refresh the page, if you quit it, or the navigator
+    $('#game').show(0);
+    $('footer').css('bottom', '-100px');
 
-        // reset the username input field
-        $('#connexion input').val('');
+    player = new Player('dev');
 
-        CONNECTION.bindEvents();
+    await player.recoverUserData();
 
-    }
-    
-    // logged
-    else {
-        player = new Player(cookie);
-        await player.recoverUserData();
+    await GAME.initializeGame('a', 7);
 
-        $('#player-banner span').text(player.username);
+    // reset the username input field
+    //$('#connexion input').val('');
 
+    GAME.bindEvents();
 
-
-
-        // INGAME
-        if(player.ingame) {
-
-            GAME.bindEvents();
-
-            GAME.retrieveGame(player.ingame, minFamilyN).then(exists => {
-
-                if(!exists) {
-
-                    player.ingame = false;
-                    player.database.ref(`/players/${player.id}/ingame`).set(player.ingame);
-
-                    $('#menu-home').fadeIn(200);
-                    HOME.bindEvents();
-
-                    $('#loadScreen').fadeOut(200);
-
-                } else {
-
-                    $('#game').fadeIn(0);
-                    $('#popup-box').css('top', '-100px');
-                    $('footer').css('bottom', '-150px');
-
-                }
-            });
-
-
-        }
-
-
-        // IN A LOBBY
-        else if(player.lobby || player.hosting) {
-            let id = player.hosting ? player.id : player.lobby;
-            let lob = await player.get(`/lobbies/${id}`);
-
-            if(player.hosting) {
-                // hosting the lobby
-                LOBBY.bindLobbyChanges(player.id);
-                $('#lobby #player-banner').addClass('host');
-
-            } else {
-                // joined a lobby
-
-                LOBBY.bindLobbyChanges(player.lobby);
-                $('#lobby').addClass('not-hosting');
-                $('#player-banner-2').addClass('host').children('span').text(lob.host.name);
-            }
-
-            LOBBY.verifyMembers(lob.participants);
-
-            $('#lobby').fadeIn(200);
-            $('footer').css('bottom', '-150px');
-            setBackground('lol_fond');
-
-            LOBBY.bindEvents();
-
-        }
-        
-
-        
-        // DEFAULT MENU
-        else {
-            // else he was on the home menu or in the research section
-            $('#menu-home').fadeIn(200);
-
-            HOME.bindEvents();
-        
-        }
-    }
-    //
-
+    //verifyMemberCreationDate();
 
     $('#loadScreen').delay(500).fadeOut(200);
 
@@ -128,4 +52,42 @@ window.onload = async function() {
     //
 };
 
-export {player, minFamilyN};
+
+
+const verifyMemberCreationDate = async function() {
+    let lastVerificationDate = await player.get(`/lastVerificationDate`);
+    let now = Date.now();
+
+    if(now - lastVerificationDate >= 21600000) {
+        // needs to filter OOD things each 6h
+
+        player.refreshVerificationDate();
+
+        // -- PLAYERS
+        filterPlug('players', 21600000);
+        // LOBBIES
+        filterPlug('lobbies', 3600000);
+        // -- GAMES
+        filterPlug('games', 21600000);
+    }
+};
+
+
+const filterPlug = async function(plug, ttl) {
+    let now = Date.now();
+    let oPlug = await player.get(`/${plug}`);
+
+    for(let id of Object.keys(oPlug)) {
+        if(!oPlug[id].creationDate) continue;
+
+        let timestamp = oPlug[id].creationDate;
+        let isOutOfDate = (now-timestamp > ttl)? true : false;
+
+        if(isOutOfDate) {
+            player.database.ref(`/${plug}/${id}`).remove();
+        }
+    }
+}
+
+
+export {player, minFamilyN, isMobile};

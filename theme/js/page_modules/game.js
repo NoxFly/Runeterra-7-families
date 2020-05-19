@@ -1,5 +1,5 @@
 import {families, regions, championRegion, regionName} from '../data/families.js';
-import {player} from '../script.js';
+import {player, isMobile} from '../script.js';
 import * as HOME from './home-menu.js';
 
 // import utils
@@ -17,6 +17,10 @@ import {
 let selectedPlayer = null;
 let selectedRegion = null;
 let selectedChampion = null;
+let currentBdiv = 3;
+let changingBundle = false;
+let swipeP = 0;
+let bdlClosed = true;
 
 const bindEvents = () => {
 
@@ -110,8 +114,7 @@ const bindEvents = () => {
 
         // clean the game place
         $('.closed').removeClass('closed');
-        $('#pannel-bundle .inner, #regions-summary, #participants, #pannel-regions .inner').html('');
-        $('#pannel-participants').html('<p>A qui souhaites-tu voler un champion ?</p>');
+        $('#regions-summary, #participants').html('');
         removeBackground();
 
     });
@@ -122,24 +125,73 @@ const bindEvents = () => {
 	$(document).on('keyup', function(e) {
 		if(!player.ingame) return; // player must be ingame to bind keys
 		switch(e.key) {
-			case 'a': openLeftMenu(); break;
-			case 'z': openBottomMenu(); break;
-			case 'e': openRightMenu(); break;
+			case 'a': previousBundle(); break;
+			case 'z': toggleATH(); break;
+			case 'e': nextBundle(); break;
 		}
-	});
+    });
+
+    $('#previous-bundle').on('click', () => {rotateBundle(-1);});
+    $('#next-bundle').on('click', () => {rotateBundle(1);});
+
+
+    $(document).on('swipeleft', () => {rotateBundle(1)});
+    $(document).on('swiperight', () => {rotateBundle(-1)});
+
+    $(document).on('swipedown', () => {
+        toggleBundle(0);
+    });
+
+    $(document).on('swipeup', () => {
+        toggleBundle(1);
+    });
+
+    $('#close-bundle-phone').on('click', () => {
+        toggleBundle(0);
+    });
 };
 
 
 const unbindEvents = () => {
-    $('#close-pannel-bundle').off('click');
     $('body').off('mouseenter');
     $('body').off('mouseleave');
-    $('body').off('click', '#pannel-participants .participant');
-    $('body').off('click', '#pannel-regions .region');
-    $('#pannel-champions .cancel').off('click');
-    $('#pannel-champions .champion').off('click');
     $('#endofgame div button').off('click');
     $(document).off('keyup');
+};
+
+
+const toggleBundle = state => {
+    if(state) {
+        if(bdlClosed) {
+            $('#pannel-bundle').show(0).css({
+                transform: 'translateY(0)',
+                opacity: 1
+            });
+            bdlClosed = false;
+        }
+
+        $('#message-center').css({
+            transform: 'translate(-50%, -50%) scale(.8)',
+            opacity: 0
+        }).delay(200).fadeOut(0);
+        $('#previous-bundle, #next-bundle, #close-bundle-phone').delay(100).fadeIn(100);
+    } else {
+        if(!bdlClosed) {
+            $('#pannel-bundle').css({
+                transform: 'translateY(40px)',
+                opacity: 0
+            }).delay(200).hide(0);
+            bdlClosed = true;
+        }
+
+        setTimeout(() => {
+            $('#message-center').fadeIn(0).css({
+                transform: 'translate(-50%, -50%) scale(1)',
+                opacity: 1
+            });
+        }, 200);
+        $('#previous-bundle, #next-bundle, #close-bundle-phone').fadeOut(100);
+    }
 };
 
 
@@ -149,7 +201,15 @@ const unbindEvents = () => {
 
 
 const initializeGame = async function(lobbyId, nF) {
-    const participants = copy(await player.get(`/lobbies/${lobbyId}/participants`));
+    let participants;
+
+    if(player.dev) {
+        participants = {a: {id: 'a', name: 'Noxfly'}, b: {id: 'b', name: 'illusion'}};
+    } else {
+        participants = copy(await player.get(`/lobbies/${lobbyId}/participants`));
+    }
+    
+
     await initializeRemote(lobbyId, participants, nF).then(function(success) {
 		if(success) {
 			initializeDOM(participants).then(() => {
@@ -160,6 +220,7 @@ const initializeGame = async function(lobbyId, nF) {
 				$('#game').fadeIn(0);
 				$('#popup-box').css('top', '-100px');
                 $('#loadScreen').delay(500).fadeOut(200);
+                newCooldown(40);
 			});
 		} else {
 			$('#launch').addClass('active');
@@ -169,7 +230,7 @@ const initializeGame = async function(lobbyId, nF) {
 	});
 };
 
-
+// useless
 const retrieveGame = async function(lobbyId, nF) {
     let exists = await player.getGameData(lobbyId);
 
@@ -229,23 +290,41 @@ const initializeDOM = async function(players) {
         if(complF[c]) allCompleted.push(...complF[c]);
     }
 
-    for(let family of familyNames) {
-        let golden = (completed.indexOf(family)!==-1)? ' completed' : '';
+    for(let i in familyNames) {
+        let family = familyNames[i];
+
+        // ghost logo
+        let logo = $('<div>');
+        let left = (i < 3)? 0 : (i > 3)? 100 : 50;
+        let opacity = (i != 3)? 0 : 1;
+
+        logo.css({
+            left: `${left}%`,
+            backgroundImage: `url('asset/logo_real_regions/${family}.png')`,
+            opacity: opacity
+        });
+
+        $('#region-big-ghost .inner').append(logo);
 
         // add to family-data
         let div = $('<div>');
-        div.addClass(`family-frame${golden}`);
+        div.addClass(`family-frame`);
         div.attr('data-family-frame', family);
         div.html(`<img src='asset/logo_regions/${family}.png' ${family=='neant'?'style="transform: translate(-43%, -50%);"':''}>`);
         $('#regions-summary').append(div);
 
-        // add pannel-region's regions
-        if(allCompleted.indexOf(family) === -1) {
-            div = $('<div>');
-            div.addClass('region');
-            div.css('background-image', `url('asset/logo_real_regions/${family}.png')`);
-            div.attr('data-region', family);
-            $('#pannel-regions .inner').append(div);
+        for(let j in families[family]) {
+            let champion = families[family][j];
+            let card = $(`#pannel-bundle .bundle-${i} .card-${j}`);
+            let inner = card.children('.inner');
+
+            if(player.bundle.indexOf(champion) === -1) {
+                card.addClass('disabled');
+            }
+
+            inner.children('span:nth-child(1)').css('background-image', `url('asset/icon_champions/${family}/${formatChampion(champion)}.png')`);
+            inner.children('span:nth-child(2)').text(champion);
+            inner.children('span:nth-child(3)').text(regionName(family));
         }
     }
 
@@ -260,32 +339,82 @@ const initializeDOM = async function(players) {
         div.children('span').text(p.name);
         $('#participants').append(div);
 
-        // for pannel choice
-		if(pId != player.id) {
-			div = $('<div class="participant">');
-			div.append($('<div>'));
-			div.append($('<span>'));
-			div.attr('data-playerId', pId).children('span').text(p.name);
-			$('#pannel-participants').append(div);
-		}
-    }
+        div = $('<div class="participant">');
 
-
-
-	for(let card of player.bundle) appendCard(card);
-
-    if($('.card').length > 0) {
-        let cardMargin = parseInt($('.card').css('margin-right').replace('px',''));
-        let cardSize = $('.card').width() + cardMargin;
-        $('#pannel-bundle .inner').css('width', cardSize * (player.bundle.length) + cardMargin);
+        $('#pannel-participants').append(div);
     }
 };
 
 
 
-const openLeftMenu      = () => {$('#regions-summary').toggleClass('closed');};
-const openBottomMenu    = () => {$('#close-pannel-bundle').click();};
-const openRightMenu     = () => {$('#participants').toggleClass('closed')};
+const previousBundle    = () => {rotateBundle(-1);};
+const nextBundle        = () => {rotateBundle(1);};
+const toggleATH         = () => {$('#participants, #regions-summary').toggleClass('closed')};
+
+const rotateBundle = vec => {
+    if(changingBundle || (isMobile && bdlClosed)) return;
+
+    changingBundle = true;
+
+    if(!isMobile) {
+
+        let prev = currentBdiv;
+        currentBdiv = Math.abs(currentBdiv + vec - ((prev==0 && vec<0)?5:0)) % 7;
+        let newPos;
+
+
+        let possLeft = ['-150px', 'calc(100% + 150px)'];
+        let possLeft2 = ['0', '100'];
+        let left;
+
+        if(vec > 0) {
+            left = 0;
+            newPos = (currentBdiv < 6)? currentBdiv+1 : 0;
+        } else {
+            left = 1;
+            newPos = (currentBdiv > 0)? currentBdiv-1 : 6;
+        }
+
+        $(`.bundle-${newPos}`).css('left', possLeft[1-left]);
+
+        $(`.bundle-${prev}`).css({
+            width: '0',
+            top: '150%',
+            left: possLeft[left]
+        });
+
+        $(`.bundle-${currentBdiv}`).css({
+            width: '700px',
+            top: '0',
+            left: '50%'
+        });
+
+        $(`#region-big-ghost .inner div:nth-child(${prev+1})`).css({
+            left: `${possLeft2[left]}%`,
+            opacity: 0,
+            transform: 'translate(-50%, -50%)'
+        });
+
+        $(`#region-big-ghost .inner div:nth-child(${currentBdiv+1})`).css({
+            left: '50%',
+            opacity: 1,
+            transform: 'translate(-50%, -50%) scale(1)'
+        });
+    } else {
+
+        if(vec == 1 && swipeP < 6) {
+            $('#pannel-bundle > .inner').css('transform', `translateX(-${(++swipeP)*100}vw)`);
+        }
+        
+        else if(vec == -1 && swipeP > 0) {
+            $('#pannel-bundle > .inner').css('transform', `translateX(-${(--swipeP)*100}vw)`);
+        }
+
+    }
+
+    setTimeout(() => {changingBundle = false}, 400);
+};
+
 
 
 const appendCard = champion => {
@@ -302,7 +431,7 @@ const appendCard = champion => {
 
     div.append(infos);
     
-    $('#pannel-bundle .inner').append(div);
+    $('#pannel-bundle > .inner').append(div);
 }
 
 
@@ -400,7 +529,7 @@ const stealChampion = () => {
 const messageFamilyCompleted = region => {
     for(let c of families[region]) {
         player.removeCard(c);
-        $(`#pannel-bundle .inner .card[data-champion="${c}"]`).remove();
+        $(`#pannel-bundle > .inner .card[data-champion="${c}"]`).remove();
     }
 
     $(`.family-frame[data-family-frame="${region}"]`).addClass('completed');
@@ -453,7 +582,7 @@ const newsTreatment = async function(news, type) {
         } else {
             message(`${thiefName} ${b?'vous':''} a volé`, champion, `${b?'':`à ${stolenName}`} ${txtCplt}`);
 
-            if(b) $(`#pannel-bundle .inner .card[data-champion="${champion}"]`).remove();
+            if(b) $(`#pannel-bundle > .inner .card[data-champion="${champion}"]`).remove();
         }
         
 
@@ -469,11 +598,13 @@ const newsTreatment = async function(news, type) {
                 announceWinner(winner);
 
             } else {
+
                 if(player.current == player.id) {
                     $('#pannel-participants').fadeIn(200);
                 } else {
                     message("C'est au tour de", player.participants[player.current].name, `de voler un champion ${txtRpl}`);
                 }
+
             }
 
         }, 4000);
@@ -508,6 +639,15 @@ const announceWinner = winner => {
     player.getOutOfGame();
 };
 
+const forceRound = () => {
+    alert();
+};
+
+const newCooldown = time => {
+    $('#timer div')
+        .css('animation', `cooldown ${time}s forwards linear`)
+        .on('animationend', forceRound);
+}
 
 
 
