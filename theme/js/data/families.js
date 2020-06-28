@@ -1,5 +1,6 @@
 import {filterObj} from '../utils.js';
 
+/** @constant {Object} families object of arrays that contains each families and each champions */
 const families = {
     bandle:         ['Corki', 			'Lulu', 		'Rumble', 		'Teemo', 			'Tristana', 	'Veigar'],
     bilgewater:     ['Fizz', 			'Gangplank', 	'Illaoi', 		'Miss Fortune', 	'Nautilus', 	'Pyke'],
@@ -16,15 +17,24 @@ const families = {
     zaun:           ['Ekko', 			'Jinx', 		'Singed', 		'Twitch', 			'Urgot', 		'Warwick']
 };
 
+/** @constant {Array} regions real region names with uppercases, accents etc... */
 const regions = ['Bandle', 'Bilgewater', 'Demacia', 'Freljord', 'Iles Obscures', 'Ionia', 'Ixtal', 'Mont Targon', 'Néant', 'Noxus', 'Piltover', 'Shurima', 'Zaun'];
 
-
+/**
+ * Return the region of a champion
+ * @param {String} champion champion name (not formated)
+ */
 const championRegion = champion => {
     let region = Object.keys(filterObj(families, (region, champList) => champList.indexOf(champion) !== -1));
     if(region.length == 1) return regions[Object.keys(families).indexOf(region[0])];
     return null;
 };
 
+/**
+ * Return the region name well formed
+ * @param {String} regionId region name formated
+ */
 const regionName = regionId => regions[Object.keys(families).indexOf(regionId)];
+
 
 export {families, regions, championRegion, regionName};

@@ -1,3 +1,9 @@
+<?php
+
+if(!defined('NOX_SEVEN_FAMILIES')) exit("<h1>Forbidden</h1><p>You don't have permission to access to this part of the server.</p><hr>");
+
+?>
+
 <!-- In game section -->
 <section id='game'>
 
@@ -42,7 +48,10 @@
     <div id='next-bundle'></div>
     <div id='close-bundle-phone'></div>
 
-    <div id='pannel-participants'></div>
+    <div id='pannel-participants'>
+        <div id='arrow-round'></div>
+    </div>
+
     <div id='timer'>
         <div></div>
     </div>
@@ -64,9 +73,7 @@
         <div id='mcb'></div> <!-- message-center-before -->
         <div id='mca'></div> <!-- message-center-after -->
         <div class='inner'>
-            <p class='first-p'></p>
             <h2></h2>
-            <p class='second-p'></p>
         </div>
     </div>
     
@@ -76,16 +83,14 @@
 
 
 
-    <div id='region-big-ghost'>
-        <div class='inner'></div>
-    </div>
+    <div id='region-big-logo'></div>
 
 
 
     <article id='complete-family'>
         <div>
             <h2>Région complétée</h2>
-            <p>Bien joué, vous avez complété la région <span></span> !</p>
+            <p>Bien joué,<br>vous avez complété la région <span></span> !</p>
             <div>ok</div>
         </div>
         <span></span>
@@ -104,5 +109,13 @@
 
     <div id='radial-ingame-background'></div>
 
+    <div id='stealMenu'>
+        <h2>Qui souhaites-tu voler ?</h2>
+
+        <div class='inner'></div>
+    </div>
+
+
+    <!-- <div id='hover'></div> - already present in header.php -->
 
 </section>

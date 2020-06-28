@@ -1,11 +1,16 @@
-import {removeBackground, _alert} from '../utils.js';
+import {removeBackground, _alert, changeSection} from '../utils.js';
 import {player, minFamilyN} from '../script.js';
 import * as GAME from './game.js';
-import * as HOME from './home-menu.js';
+import * as HOME from './home.js';
 
+
+/**
+ * BIND EVENTS OF THE LOBBY SECTION
+ */
 const bindEvents = async function() {
+
     // stop hosting game / lobby
-    $('#lobby .cancel').on('click', async function() {
+    $('body').on('click', '#lobby .cancel', async function() {
         await player.unbindLobbyChanges();
 
         // the hoster left
@@ -19,7 +24,9 @@ const bindEvents = async function() {
         }
     });
 
-    $('#launch').on('click', async function() {
+
+    // launch the game
+    $('body').on('click', '#launch', async function() {
         if(!$('#launch').hasClass('active')) return;
         $('#launch').removeClass('active');
 
@@ -28,10 +35,21 @@ const bindEvents = async function() {
         $('#loadScreen').fadeIn(200);
 
         GAME.bindEvents();
-        GAME.initializeGame(player.id, minFamilyN);
+
+        changeSection('game', () => {
+            GAME.initializeGame(player.id, minFamilyN);
+        });
+
+        
     });
+
 };
 
+
+
+/**
+ * UNBIND EVENTS OF THE LOBBY SECTION
+ */
 const unbindEvents = () => {
     $('#lobby .cancel').off('click');
     $('#launch').off('click');
@@ -40,28 +58,31 @@ const unbindEvents = () => {
 
 
 
-
+/**
+ * QUI THE LOBBY
+ */
 const quitLobby = () => {
     unbindEvents();
     HOME.bindEvents();
 
     player.unbindLobbyChanges();
-    $('#lobby').fadeOut(200);
-    $('#launch').removeClass('active');
-    removeBackground();
-    setTimeout(() => {
+
+    changeSection('home', () => {
+        $('#launch').removeClass('active');
+        removeBackground();
         $('footer').css('bottom', '0');
-        $('#menu-home').fadeIn(200);
-        $('#lobby').removeClass('not-hosting');
-        $('#lobby article').css('opacity', 0);
-        $('#lobby #player-banner').removeClass('host').css('opacity', 1);
-        $('#lobby #player-banner-2').removeClass('host');
-    }, 200);
+    });
 };
 
+
+
+/**
+ * BIND EVENTS OF THE LOBBY THE PLAYER ARE IN
+ */
 const bindLobbyChanges = lobbyId => {
     player.bindLobbyChanges(lobbyId, async function(lobby, type) {
         let action = checkLobbyChanges(lobbyId, lobby, type);
+
         if(action) {
 
             switch(type) {
@@ -86,6 +107,11 @@ const bindLobbyChanges = lobbyId => {
     });
 };
 
+
+
+/**
+ * ACTION OF THE BINDLOBBYCHANGES FUNCTION
+ */
 function checkLobbyChanges(lobbyId, lobby, type) {
     if(type == 'lobbyJoined') {
         if(typeof lobby != 'object') return false;
@@ -116,6 +142,11 @@ function checkLobbyChanges(lobbyId, lobby, type) {
 }
 
 
+
+/**
+ * REFRESH THE PLAYER'S BANNERS
+ * @param {Integer} lobby lobby id
+ */
 const verifyMembers = lobby => {
     let participantsId = Object.keys(lobby);
 
@@ -135,6 +166,10 @@ const verifyMembers = lobby => {
 };
 
 
+/**
+ * LAUNCH THE GAME
+ * @param {Integer} lobbyId lobby id
+ */
 const prepareGame = lobbyId => {
     if(player.hosting) return;
     player.unbindLobbyChanges(lobbyId);
@@ -142,14 +177,12 @@ const prepareGame = lobbyId => {
     $('#loadScreen').fadeIn(200);
 
     GAME.bindEvents();
-    GAME.initializeGame(lobbyId, minFamilyN).then(() => {
-        setTimeout(() => {
-            $('#lobby').fadeOut(0);
-            $('#game').fadeIn(0);
-            $('#popup-box').css('top', '-100px');
-            $('#loadScreen').delay(500).fadeOut(200);
-        }, 1000);
+
+    changeSection('game', () => {
+        GAME.initializeGame(lobbyId, minFamilyN);
     });
+
+    
 };
 
 

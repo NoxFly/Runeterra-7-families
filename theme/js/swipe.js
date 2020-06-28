@@ -1,6 +1,13 @@
+/** @var {Integer} swipexDown|yDown vector of swipe */
 let swipexDown, swipeyDown;
+
+/** @var {String} lastSwipe the last swipe direction the player did */
 let lastSwipe = null;
 
+/**
+ * Called when the user starts to pointer down
+ * @param {Object} e event - default parameter
+ */
 function handleTouchStart(e) {
 	let getTouches = e2 => e2.touches || [{clientX: e.clientX, clientY: e.clientY}, null];
 
@@ -9,6 +16,10 @@ function handleTouchStart(e) {
 	swipeyDown = firstTouch.clientY;
 }
 
+/**
+ * Called when the user moves his cursor / finger while he is pointer downed
+ * @param {Object} e event - default parameter
+ */
 function handleTouchMove(e) {
 	if(!swipexDown || !swipeyDown) {
 		return;
@@ -44,9 +55,13 @@ function handleTouchMove(e) {
 	swipeyDown = null;
 }
 
+/**
+ * Enable / Authorize the swipe
+ */
 const enableSwipe = () => {
     document.addEventListener('mousedown', handleTouchStart, false);
     document.addEventListener('mousemove', handleTouchMove, false);
 };
+
 
 export {lastSwipe, enableSwipe};

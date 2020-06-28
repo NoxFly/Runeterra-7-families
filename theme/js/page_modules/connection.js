@@ -1,43 +1,70 @@
 import {player} from '../script.js';
-import * as HOME from './home-menu.js';
+import * as HOME from './home.js';
+import {changeSection} from '../utils.js';
 
+
+
+/**
+ * BIND EVENTS OF THE CONNECTION SECTION
+ */
 const bindEvents = () => {
+
+
+
     // focus input to write username
-    $('#connexion div').on('click', function() {
+    $('body').on('click', '#connection div', function() {
         $(this).addClass('active');
         $(this).children('input').focus();
     });
 
+
+
+
+
     // blur username input
-    $('#connexion input').on('blur', function() {
+    $('body').on('blur', '#connection input', function() {
         if(!/\S+/.test(this.value)) {
             $(this).val('');
             $(this).parent().removeClass('active');
         }
     });
 
+
+
+
+
     // check if we enable or disable the button to login, following what he wrote
-    $('#connexion input').on('keyup', function(e) {
+    $('body').on('keyup', '#connection input', function(e) {
         let val = $(this).val();
         if(val.length > 2 && val.length < 17) {
-            $('#connexion button').prop('disabled', false);
+            $('#connection button').prop('disabled', false);
         } else {
-            $('#connexion button').prop('disabled', true);
+            $('#connection button').prop('disabled', true);
         }
 
-        if(e.key == 'Enter' && !$('#connexion button').prop('disabled')) {
-            $('#connexion button').click();
+        if(e.key == 'Enter' && !$('#connection button').prop('disabled')) {
+            $('#connection button').click();
         }
     });
 
-    $('#connexion input').on('focus', function() {
+
+
+
+
+    // when we focus the input to write our username
+    $('body').on('focus', '#connection input', function() {
         $(this).parent().addClass('active');
     });
 
+
+
+
+
+
     // connect
-    $('#connexion button').on('click', async function() {
+    $('body').on('click', '#connection button', async function() {
         $(this).prop('disabled', true);
-        let val = $('#connexion input').val().trim();
+        let val = $('#connection input').val().trim();
 
         let canRegister = false;
         if(val.length > 2 && val.length < 17) {
@@ -52,20 +79,29 @@ const bindEvents = () => {
             unbindEvents();
             HOME.bindEvents();
 
-            $('#connexion').fadeOut(200);
-            $('#menu-home').delay(200).fadeIn(200);
-
-            $('#player-banner span').text(val);
+            changeSection('home');
         }
     });
+
+
+
+
+
 };
 
+
+
+/**
+ * UNBIND EVENTS OF THE CONNECTION SECTION
+ */
 const unbindEvents = () => {
-    $('#connexion div').off('click');
-    $('#connexion input').off('blur');
-    $('#connexion input').off('keyup');
-    $('#connexion input').off('focus');
-    $('#connexion button').off('click');
+    $('#connection div').off('click');
+    $('#connection input').off('blur');
+    $('#connection input').off('keyup');
+    $('#connection input').off('focus');
+    $('#connection button').off('click');
 };
+
+
 
 export {bindEvents};

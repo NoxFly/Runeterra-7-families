@@ -1,6 +1,12 @@
+/** @var {Integer} lastPopup popup's left property */
 let lastPopup = null;
 
+/**
+ * BIND EVENTS OF THE GENERAL THINGS THAT DOES NOT NEEDS TO BE UNBINDED
+ */
 const bindEvents = () => {
+
+
     // open / close a popup at the top-left screen corner
     $('#popup-box div').click(function() {
         let popup = $(this).offset().left;
@@ -17,6 +23,9 @@ const bindEvents = () => {
         }
     });
 
+
+
+
     // close the popup clicking anywhere on the page
     $('#popup-hover').click(function() {
         $(this).css('display', 'none');
@@ -24,9 +33,17 @@ const bindEvents = () => {
         lastPopup = null;
     });
 
+
+
+
+    // close alert popup
     $('#message-alert div').click(() => {
         $('#message-alert, #hover').fadeOut(0);
-    })
+    });
+
+
+
+
 };
 
 export {bindEvents};

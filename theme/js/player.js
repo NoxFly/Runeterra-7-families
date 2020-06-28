@@ -1,9 +1,15 @@
-import {rand, shuffle, copy, filterObj} from './utils.js';
-import {config} from '../../_conf/config.js';
-import {families, regions, championRegion} from './data/families.js';
+import {config} from '../../config/config.js';
+import {families} from './data/families.js';
+import {randomKey, initDeck, distributeCards, randomFamilies, copy, filterObj} from './utils.js';
 
+/**
+ * @class Player
+ */
 class Player {
-    // constructor
+    /**
+     * @constructor
+     * @param {Object} player default configuration of the player
+     */
     constructor(player=null) {
         // firebase config
         firebase.initializeApp(config);
@@ -36,11 +42,16 @@ class Player {
         });
     }
 
-    // generate random key with 63 chars
+    /**
+     * GENERATE A RANDOM KEY OF 63 CHARACTERS
+     */
     genKey() {
         return randomKey(63);
     }
 
+    /**
+     * REFRESH THE VERIFICATION DATE TO NOW
+     */
     refreshVerificationDate() {
         let now = Date.now();
         this.database.ref('/lastVerificationDate').set(now);
@@ -54,7 +65,9 @@ class Player {
 
     /// -------------------------- USER
 
-    // default player structure - generate a player
+    /**
+     * DEFAULT PLAYER STRUCTURE - GENERATE A PLAYER
+     */
     genPlayer() {
         this.key 		    = this.genKey();
         this.name 		    = 'guest';
@@ -66,7 +79,10 @@ class Player {
         this.creationDate   = Date.now();
     }
 
-    // create a new remote user
+    /**
+     * CREATE A NEW REMOTE PLAYER
+     * @param {String} username username of the player
+     */
     async createUser(username) {
         this.name = username;
         return await this.database.ref('/players').child(this.key).set({
@@ -81,10 +97,12 @@ class Player {
         }).then(() => true).catch(error => false);
     }
 
-    // get/refresh remote data about the player
+    /**
+     * RECOVER THE REMOTE DATA ABOUT THE PLAYER
+     */
     async recoverUserData() {
         await this.database.ref(`/players/${this.key}`).once('value', data => {
-            if(data) {
+            if(data && data.val()) {
                 data = data.val();
                 this.name           = data.username;
                 this.bIngame        = data.ingame;
@@ -107,7 +125,9 @@ class Player {
 
     /// ------------------------ LOBBIES
 
-    // create a lobby remotly
+    /**
+     * CREATE A LOBBY REMOTLY
+     */
     async createLobby() {
         this.bHosting = true;
         this.database.ref(`/lobbies`).child(this.key).set({
@@ -117,10 +137,13 @@ class Player {
             launch: false
         }).then(() => {
             this.database.ref(`players/${this.key}/hosting`).set(this.bHosting);
-		})
+		});
     }
 
-    // remove the lobby remotly
+    /**
+     * DELETE THE REMOTE LOBBY
+     * @param {Function} callback callback function after the deletion
+     */
     async stopHost(callback) {
         this.bHosting = false;
         this.database.ref(`/lobbies/${this.key}`).remove().then(() => {
@@ -129,21 +152,31 @@ class Player {
 		});
     }
 
-    // get real time changes - lobbies
+    /**
+     * RECOVER CREATED LOBBIES IN REAL TIME
+     * @param {Function} callback callback to be executed on event handling
+     */
     getLobbies(callback) {
         this.database.ref(`/lobbies`).on('child_added',   snapshot => {callback(snapshot.val(), 'add');});
         this.database.ref(`/lobbies`).on('child_removed', snapshot => {callback(snapshot.val(), 'remove');});
         this.database.ref(`/lobbies`).on('child_changed', snapshot => {callback(snapshot.val(), 'change');});
     }
 
-    // off real time changes - lobbies
+    /**
+     * UNBIND PREVIOUS HANDLERS ABOUT LOBBY CREATIONS
+     */
     stopSearchLobbies() {
         this.database.ref('/lobbies').off('child_added');
         this.database.ref('/lobbies').off('child_removed');
         this.database.ref('/lobbies').off('child_changed');
     }
 
-    // join a lobby of another player
+    /**
+     * JOIN A LOBBY OF ANOTHER PLAYER
+     * @param {Object} host host id/name
+     * @param {Integer} n number of participants
+     * @param {Function} callback callback function executed once the player joined the lobby
+     */
     async joinLobby(host, n, callback) {
         this.lobby = host.id;
         this.database.ref(`/players/${this.key}/lobby`).set(this.sLobby);
@@ -160,17 +193,24 @@ class Player {
         });
 	}
     
-    // quit the lobby the player is from
+    /**
+     * QUIT THE LOBBY OF ANOTHER PLAYER HE IS FROM
+     * @param {Function} callback callback function once the player quitted the lobby
+     */
 	async quitLobby(callback) {
         if(this.sLobby) {
-            //await this.database.ref(`/lobbies/${this.sLobby}/participants/${this.key}`).remove();
+            await this.database.ref(`/lobbies/${this.sLobby}/participants/${this.key}`).remove();
             this.lobby = false;
             this.database.ref(`/players/${this.key}/lobby`).set(this.sLobby);
             callback();
         }
 	}
 
-    // get real time changes - current lobby
+    /**
+     * BIND LOBBY CHANGES IN REAL TIME
+     * @param {Integer} lobbyId lobby id
+     * @param {Function} callback callback function to be executed on handling
+     */
     async bindLobbyChanges(lobbyId, callback) {
         let lobby = this.database.ref(`/lobbies/${lobbyId}`);
         lobby.on('child_added',   snapshot => {callback(snapshot.val(), 'lobbyJoined')});
@@ -178,7 +218,10 @@ class Player {
         lobby.on('child_changed', snapshot => {callback(snapshot.val(), 'lobbyChanged')});
     }
 
-    // off real time changes - current lobby
+    /**
+     * UNBIND PREVIOUS HANDLERS
+     * @param {Integer} lobbyId lobby id
+     */
     unbindLobbyChanges(lobbyId) {
         let lobby = this.database.ref(`/lobbies/${lobbyId}`);
         lobby.off('child_changed');
@@ -207,8 +250,8 @@ class Player {
         this.ingame = this.id;
         this.database.ref(`/players/${this.key}/ingame`).set(this.key);
 
-        let families = randomFamilies(nFamilies);
-        let deck = initDeck(families);
+        let Families = randomFamilies(nFamilies);
+        let deck = initDeck(Families);
         let bundles = distributeCards(Object.keys(participants), deck);
 
         let completed = {};
@@ -220,7 +263,7 @@ class Player {
             current: this.key,
             bundles: bundles,
             deck: deck,
-            families: families,
+            families: Families,
             completed: completed,
             news: false,
             creationDate: Date.now()
@@ -289,7 +332,7 @@ class Player {
     
 
 
-    nextRound(result, replay) {
+    async nextRound(result, replay) {
         let next = {id: this.key, name: this.username};
 
         if(!replay) {
@@ -298,13 +341,10 @@ class Player {
             next = this.participants[participants[(i+1)%participants.length]];
         }
 
-        // result:
-        // {thiefId=this.key, stolenId, regionId, championName, championDrawnName=false, familyCompleted=false}
-
         this.game.news = result;
         this.game.current = next.id;
 
-        this.database.ref(`/games/${this.ingame}`).set(this.game);
+        await this.database.ref(`/games/${this.ingame}`).set(this.game);
 
         return next;
     }
@@ -372,7 +412,7 @@ class Player {
 
     gameFinished() {
         // no longer deck & every bundle is empty because every families are formed
-        if((this.deck.length==0 || !this.deck) && (Object.keys(filterObj(this.game.bundles, (id, bundle) => bundle.length>0)) == 0)) {
+        if((this.deck.length == 0 || !this.deck) && (Object.keys(filterObj(this.game.bundles, (id, bundle) => bundle.length > 0)) == 0)) {
             let winner = false;
             let maxFormed = 0;
 
@@ -474,55 +514,5 @@ class Player {
 }
 
 
-
-
-
-
-
-
-
-
-// utility
-let charTable = 'abcdefghijklmnoprstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-const randomKey = len => {
-    let key = '';
-    for(let i=0; i < len; i++) key += charTable[rand(0, charTable.length-1)];
-    return key;
-};
-
-const randomFamilies = n => {
-	let f = copy(families);
-	let familyNames = Object.keys(f);
-
-	while(familyNames.length > n)
-		familyNames.splice(rand(0, familyNames.length-1), 1);
-
-	return familyNames;
-};
-
-const initDeck = familyNames => {
-	let deck = [];
-	for(let f of familyNames) deck.push(...families[f]);
-	shuffle(deck);
-	return deck;
-};
-
-const distributeCards = (participants, deck) => {
-	let n = participants.length;
-	let m = n*6;
-
-	let bundles = {};
-	for(let p of participants) bundles[p] = [];
-
-	if(m > deck.length) return bundles;
-
-	for(let i=0; i<n; i++) {
-		for(let j=0; j<6; j++) {
-			bundles[participants[i]].push(deck.splice(0, 1)[0]);
-		}
-	}
-
-	return bundles;
-};
 
 export {Player};
